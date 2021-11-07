@@ -1,5 +1,10 @@
 package com.example.web;
 
+import com.auth0.jwt.exceptions.AlgorithmMismatchException;
+import com.auth0.jwt.exceptions.SignatureVerificationException;
+import com.auth0.jwt.exceptions.TokenExpiredException;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import com.example.util.JwtUtils;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PostFilter;
@@ -8,7 +13,9 @@ import org.springframework.security.access.prepost.PreFilter;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 public class LoginController {
@@ -77,5 +84,14 @@ public class LoginController {
     @GetMapping("/logout")
     public String logout() {
         return "logout";
+    }
+
+    /**
+     * 如果这个方法需要验证token，拦截器会提前处理，这里不用管
+     */
+    @GetMapping("jwt/getInfo")
+    public Map<String, String> getInfo() {
+        // 完成自己的业务逻辑
+        return Map.of("info_1", "message_1", "info_2", "message_2");
     }
 }
