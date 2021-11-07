@@ -32,3 +32,42 @@ UsernamePasswordAuthenticationFilter：拦截登录请求，校验用户名密�
 
    数据加密接口
 
+
+
+认证 (authentication)
+
+1. 配置文件中写死
+
+   ```yaml
+   spring:
+     security:
+       user:
+         name: admin
+         password: 123456
+   ```
+
+2. 配置类中写死
+
+   ```java
+   auth.inMemoryAuthentication()
+           .withUser("teacher").password(password).roles("teacher")
+   ```
+
+3. 数据库查询
+
+   ```java
+   return new User("admin", "123456", authorities)
+   ```
+
+
+
+RemenberMe
+
+首次登录时在 `UsernamePasswordAuthenticationFilter` 中拿到用户名密码进行认证，成功之后它的父类中 `AbstractAuthenticationProcessingFilter#successfulAuthentication` 方法调用 `AbstractRememberMeServices#loginSuccess` 方法使用 `PersistentTokenRepository` 生成 `PersistentRememberMeToken` 放到 cookie 中，同时使用 `JdbcTokenRepositoryImpl` 将其存到数据库中
+
+再次登录时 `RememberMeAuthenticationFilter` 会调用 `AbstractRememberMeServices#autoLogin` 从 cookie 中取出值和数据库中的值进行判断
+
+
+
+
+
