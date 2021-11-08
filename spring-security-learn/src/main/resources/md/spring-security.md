@@ -69,5 +69,21 @@ RemenberMe
 
 
 
+ExceptionTranslationFilter：负责检测 spring security (通常由 AbstractSecurityIterceptor )引发的异常
+
+AuthenticationEntryPoint：身份认证策略
+
+SecurityContextPersistenceFilter：在请求之间存储 SecurityContext
+
+AccessDecisionManager：做出访问控制决策
+
+AbstractSecurityInterceptor：提供一致的工作流处理安全的对象请求
+
+AfterInvocationManager
+
+ConfigAttribute
+
+RunAsManager
+
 
 
