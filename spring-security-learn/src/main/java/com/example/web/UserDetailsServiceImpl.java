@@ -16,6 +16,9 @@ import java.util.Objects;
 
 /**
  * 自定义数据库查询过程(从数据库中查询用户名密码)，返回User对象
+ * 将数据提供给框架内的其他组件外，不执行其他功能。特别是，它不会对用户进行身份验证，这是由 AuthenticationManager 完成的
+ * 如果需要自定义身份验证过程，则直接使用 implement AuthenticationProvider
+ * 认证成功后，UserDetails 会存储在 SecurityContextHolder 的 Authentication 中
  */
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {

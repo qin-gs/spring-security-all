@@ -55,6 +55,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/read").hasAuthority("read")
                 .antMatchers("/write").hasAuthority("write")
                 .antMatchers("/anyAuthority").hasAnyAuthority("write", "read")
+                .antMatchers("/db/**").access("hasRole('teacher') and hasRole('dba')") // 这里不用指定 ROLE_ 前缀
                 .anyRequest().authenticated()
                 // 配置 remember me
                 .and().rememberMe().tokenRepository(persistentTokenRepository())
@@ -64,7 +65,16 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         // 设置没有权限时的调整页面(403)
         http.exceptionHandling().accessDeniedPage("/unauth.html");
         // 设置退出页面
-        http.logout().logoutUrl("/logout").logoutSuccessUrl("/login.html").permitAll();
+        // 使 HTTP 会话无效
+        // 清理配置的所有 RememberMe 身份验证
+        // 清除SecurityContextHolder
+        // 重定向到/login?logout
+        http.logout()
+                .logoutUrl("/logout")
+                .logoutSuccessUrl("/login.html")
+                .invalidateHttpSession(true)
+                .deleteCookies("cookie-name")
+                .permitAll();
 
     }
 
@@ -78,6 +88,26 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         //         .and().withUser("admin").password(password).roles("student", "teacher");
     }
 
+    /**
+     * 内存中的身份验证
+     */
+    // @Override
+    // @Bean
+    // public UserDetailsService userDetailsService() {
+    //     org.springframework.security.core.userdetails.User.UserBuilder userBuilder = org.springframework.security.core.userdetails.User.withDefaultPasswordEncoder();
+    //     InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
+    //     manager.createUser(userBuilder.username("teacher").password("password").roles("teacher").build());
+    //     manager.createUser(userBuilder.username("student").password("password").roles("student").build());
+    //     return manager;
+    // }
+
+    /**
+     * 需要注册到 AuthenticationManagerBuilder
+     */
+    // @Bean
+    // public AuthenticationProvider authenticationProvider() {
+    //     return new AuthenticationProviderImpl();
+    // }
     @Bean
     public BCryptPasswordEncoder bCryptPasswordEncoder() {
         return new BCryptPasswordEncoder();
@@ -123,7 +153,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 } catch (Exception e) {
                     logger.info("LOGOUT EXCEPTION , e : " + e.getMessage());
                 }
-                httpServletResponse.sendRedirect("/login");
+                httpServletResponse.sendRedirect("/login.html");
             }
         };
     }
