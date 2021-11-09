@@ -61,7 +61,7 @@ UsernamePasswordAuthenticationFilter：拦截登录请求，校验用户名密�
 
 
 
-RemenberMe
+RememberMe
 
 首次登录时在 `UsernamePasswordAuthenticationFilter` 中拿到用户名密码进行认证，成功之后它的父类中 `AbstractAuthenticationProcessingFilter#successfulAuthentication` 方法调用 `AbstractRememberMeServices#loginSuccess` 方法使用 `PersistentTokenRepository` 生成 `PersistentRememberMeToken` 放到 cookie 中，同时使用 `JdbcTokenRepositoryImpl` 将其存到数据库中
 
@@ -69,7 +69,7 @@ RemenberMe
 
 
 
-ExceptionTranslationFilter：负责检测 spring security (通常由 AbstractSecurityIterceptor )引发的异常
+ExceptionTranslationFilter：负责检测 spring security (通常由 AbstractSecurityInterceptor )引发的异常
 
 AuthenticationEntryPoint：身份认证策略
 
@@ -86,4 +86,39 @@ ConfigAttribute
 RunAsManager
 
 
+
+DelegatingFilterProxy
+
+FilterChainProxy
+
+过滤器顺序：
+
+- `ChannelProcessingFilter`，因为它可能需要重定向到其他协议
+- `SecurityContextPersistenceFilter`，因此可以在 Web 请求开始时在`SecurityContextHolder`中设置`SecurityContext`，并且在 Web 请求结束时(对下一个 Web 请求可用)对`SecurityContext`所做的任何更改都可以复制到`HttpSession`中。
+- `ConcurrentSessionFilter`，因为它使用`SecurityContextHolder`功能并且需要更新`SessionRegistry`以反映来自委托人的持续请求
+- 认证处理机制`UsernamePasswordAuthenticationFilter`，`CasAuthenticationFilter`，`BasicAuthenticationFilter`等-以便可以将`SecurityContextHolder`修改为包含有效的`Authentication`请求令牌
+- `SecurityContextHolderAwareRequestFilter`，如果您使用它来将支持 Spring Security 的`HttpServletRequestWrapper`安装到 servlet 容器中
+- `JaasApiIntegrationFilter`，如果`SecurityContextHolder`中有`JaasAuthenticationToken`，则它将`FilterChain`作为`JaasAuthenticationToken`中的`Subject`处理。
+- `RememberMeAuthenticationFilter`，因此，如果没有较早的身份验证处理机制更新`SecurityContextHolder`，并且请求提出一个 cookie 来启用“记住我”服务，则会在此处放置一个合适的记住`Authentication`对象
+- `AnonymousAuthenticationFilter`，因此，如果没有较早的身份验证处理机制更新`SecurityContextHolder`，则将在其中放置一个匿名`Authentication`对象
+- `ExceptionTranslationFilter`，以捕获任何 Spring Security 异常，以便可以返回 HTTP 错误响应或启动适当的`AuthenticationEntryPoint`
+- `FilterSecurityInterceptor`，以保护 Web URI 并在拒绝访问时引发异常
+
+
+
+核心安全过滤器
+
+FilterSecurityInterceptor
+
+
+
+
+
+
+
+#### 授权 Authentication
+
+Aythentication 存储在 GrantAuthority 中，代表已授予用户权限
+
+通过 AuthenticationManager 插入到 Authentication 中，做出决策是由 AccessDecisionManager 读取
 
