@@ -3,13 +3,18 @@ package com.example.config;
 
 import com.example.web.AuthenticationProviderImpl;
 import com.example.web.User;
+import com.example.web.UserDetailsServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.RememberMeAuthenticationProvider;
+import org.springframework.security.authentication.rcp.RemoteAuthenticationProvider;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.jdbc.JdbcDaoImpl;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.access.AccessDeniedHandlerImpl;
@@ -17,12 +22,17 @@ import org.springframework.security.web.access.ExceptionTranslationFilter;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.authentication.RememberMeServices;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
+import org.springframework.security.web.authentication.rememberme.RememberMeAuthenticationFilter;
+import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices;
 import org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.security.web.authentication.www.DigestAuthenticationEntryPoint;
+import org.springframework.security.web.authentication.www.DigestAuthenticationFilter;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextPersistenceFilter;
 
@@ -37,6 +47,7 @@ public class Config {
     private static final Logger logger = LoggerFactory.getLogger(Config.class);
 
     private AuthenticationManager manager;
+    private UserDetailsServiceImpl userDetailsService;
 
     /**
      * 需要注册到 AuthenticationManagerBuilder
@@ -149,6 +160,8 @@ public class Config {
     public UsernamePasswordAuthenticationFilter authenticationFilter() {
         // 需要配置 AuthenticationManager
         UsernamePasswordAuthenticationFilter filter = new UsernamePasswordAuthenticationFilter();
+        // 设置 remember me 功能
+        filter.setRememberMeServices(rememberMeServices());
         filter.setAuthenticationManager(manager);
         return filter;
     }
@@ -172,6 +185,56 @@ public class Config {
         BasicAuthenticationEntryPoint entryPoint = new BasicAuthenticationEntryPoint();
         entryPoint.setRealmName("name of realm");
         return entryPoint;
+    }
+
+    /**
+     * 处理 HTTP Headers 中提供的摘要身份验证凭据
+     * 摘要式身份验证试图解决基本身份验证的许多弱点，特别是通过确保凭据不会以明文形式通过网络发送来解决
+     * 格式如下：
+     * <pre>
+     * base64(expirationTime + ":" + md5Hex(expirationTime + ":" + key))
+     * expirationTime:   The date and time when the nonce expires, expressed in milliseconds
+     * key:              A private key to prevent modification of the nonce token
+     * </pre>
+     */
+    @Bean
+    public DigestAuthenticationFilter digestAuthenticationFilter() {
+        DigestAuthenticationFilter filter = new DigestAuthenticationFilter();
+        filter.setUserDetailsService(new JdbcDaoImpl());
+        filter.setAuthenticationEntryPoint(digestAuthenticationEntryPoint());
+        return filter;
+    }
+
+    /**
+     * 指定用于生成随机数令牌的key的属性，以及 nonceValiditySeconds 用于确定到期时间的属性(默认值为 300，等于五分钟)
+     */
+    @Bean
+    public DigestAuthenticationEntryPoint digestAuthenticationEntryPoint() {
+        DigestAuthenticationEntryPoint entryPoint = new DigestAuthenticationEntryPoint();
+        entryPoint.setRealmName("realm name");
+        entryPoint.setKey("digest authentication");
+        entryPoint.setNonceValiditySeconds(500);
+        return entryPoint;
+    }
+
+    @Bean
+    public RememberMeAuthenticationFilter rememberMeAuthenticationFilter(@Autowired RememberMeServices rememberMeServices) {
+        return new RememberMeAuthenticationFilter(manager, rememberMeServices);
+    }
+
+    /**
+     * 需要添加到 UsernamePasswordAuthenticationFilter.setRememberMeServices() 中
+     * TokenBasedRememberMeServices 生成 RememberMeAuthenticationToken，
+     * 由 RememberMeAuthenticationProvider 处理
+     */
+    @Bean
+    public TokenBasedRememberMeServices rememberMeServices() {
+        return new TokenBasedRememberMeServices("share key", userDetailsService);
+    }
+
+    @Bean
+    public RememberMeAuthenticationProvider rememberMeAuthenticationProvider() {
+        return new RememberMeAuthenticationProvider("share key");
     }
 
 }

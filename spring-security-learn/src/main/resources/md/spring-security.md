@@ -118,7 +118,7 @@ FilterSecurityInterceptor
 
 #### 授权 Authentication
 
-Aythentication 存储在 GrantAuthority 中，代表已授予用户权限
+Authentication 存储在 GrantAuthority 中，代表已授予用户权限
 
 通过 AuthenticationManager 插入到 Authentication 中，做出决策是由 AccessDecisionManager 读取
 
